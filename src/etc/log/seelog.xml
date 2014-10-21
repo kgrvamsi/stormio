@@ -1,0 +1,23 @@
+<seelog minlevel="debug">
+      <exceptions>
+	  <exception filepattern="sceduler.go" minlevel="error"/>
+      </exceptions>
+      <outputs>
+	<file path="/var/log/cloudio/cloudio.log" formatid="common"/>
+
+	<filter levels="critic al">
+			<file path="/var/log/cloudio/cloudio-critical.log" formatid="critical"/>
+	    <!--
+	      <smtp formatid="criticalemail" senderaddress="noreply-notification-service@none.org" sendername="Automatic notification service" hostname="mail.none.org" hostport="587" username="nns" password="123">
+		  <recipient address="john-smith@none.com"/>
+		  <recipient address="hans-meier@none.com"/>
+	      </smtp>
+	    -->
+	</filter>
+    </outputs>
+    <formats>
+	<format id="common" format="%n%Date %Time [%LEV]%Func: %Msg"/>
+	<format id="critical" format="%n%Time %Date %RelFile %Func: %Msg"/>
+	<!-- <format id="criticalemail" format="Critical error on our server!\n    %Time %Date %RelFile %Func %Msg \nSent by Seelog"/> -->
+    </formats>
+</seelog>
