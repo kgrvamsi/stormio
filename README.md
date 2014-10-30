@@ -92,7 +92,7 @@ SOFTWARE.
 
 ### Contributors
 * [Devananda Reddy](DReddy@clearpathnet.com)
-* [Ravi Chunuduru](RChunduru@clearpathnet.com)
+* [Ravi Chunduru](RChunduru@clearpathnet.com)
 * [Peter Lee](plee@Clearpathnet.com)
 
 
