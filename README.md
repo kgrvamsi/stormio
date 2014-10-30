@@ -91,9 +91,9 @@ SOFTWARE.
 
 
 ### Contributors
-* [Devananda Reddy]
-* [Ravi Chunuduru]
-* [Peter Lee]
+* [Devananda Reddy](DReddy@clearpathnet.com)
+* [Ravi Chunuduru](RChunduru@clearpathnet.com)
+* [Peter Lee](plee@Clearpathnet.com)
 
 
 ## Let's collaborate
