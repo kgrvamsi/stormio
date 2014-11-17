@@ -1,11 +1,6 @@
 package scheduler
 
 import (
-	"stormstack.org/cloudio/cache"
-	"stormstack.org/cloudio/persistence"
-	"stormstack.org/cloudio/provision"
-	"stormstack.org/cloudio/stormstack"
-	"stormstack.org/cloudio/util"
 	"fmt"
 	log "github.com/cihub/seelog"
 	"labix.org/v2/mgo/bson"
@@ -14,6 +9,11 @@ import (
 	goosehttp "launchpad.net/goose/http"
 	"launchpad.net/goose/identity"
 	"net/http"
+	"stormstack.org/cloudio/cache"
+	"stormstack.org/cloudio/persistence"
+	"stormstack.org/cloudio/provision"
+	"stormstack.org/cloudio/stormstack"
+	"stormstack.org/cloudio/util"
 	"time"
 )
 
@@ -176,8 +176,7 @@ func (prov *Provisioner) updateAndNotify(conn *persistence.Connection, arRes *pe
 func (prov *Provisioner) notifyAttachAsset(arRes *persistence.AssetRequest) error {
 	reqData := &goosehttp.RequestData{ReqValue: arRes, RespValue: &arRes,
 		ExpectedStatus: []int{http.StatusOK}}
-	vertexPlatformURL := util.GetString("external", "vertex-url")
-	url := fmt.Sprintf("%s/resource/%s/asset", vertexPlatformURL, arRes.ResourceId)
+	url := fmt.Sprintf("%s/resource/%s/asset", arRes.NotifyURL, arRes.ResourceId)
 	log.Debugf("[areq %s][res %s] Updating Vertex Platform [%s] with Asset details", arRes.Id, arRes.ResourceId, url)
 	err := prov.Client.SendRequest(client.POST, "", url, reqData)
 	if err != nil {
@@ -188,10 +187,9 @@ func (prov *Provisioner) notifyAttachAsset(arRes *persistence.AssetRequest) erro
 	return nil
 }
 
-func (prov *Provisioner) notifyDettachAsset(resourceId string) error {
+func (prov *Provisioner) notifyDettachAsset(notifyURL, resourceId string) error {
 	reqData := &goosehttp.RequestData{ExpectedStatus: []int{http.StatusOK}}
-	vertexPlatformURL := util.GetString("external", "vertex-url")
-	url := fmt.Sprintf("%s/resource/%s/asset", vertexPlatformURL, resourceId)
+	url := fmt.Sprintf("%s/resource/%s/asset", notifyURL, resourceId)
 
 	err := prov.Client.SendRequest(client.DELETE, "", url, reqData)
 	if err != nil {
@@ -259,7 +257,7 @@ func (prov *Provisioner) RescheduleOldRequests() {
 }
 
 func (prov *Provisioner) terminateFailedResource(ar *persistence.AssetRequest, deleteSaltKey bool) error {
-	prov.notifyDettachAsset(ar.ResourceId)
+	prov.notifyDettachAsset(ar.NotifyURL, ar.ResourceId)
 	return prov.terminateInstance(ar, deleteSaltKey)
 }
 
@@ -298,7 +296,6 @@ func (prov *Provisioner) notifyDeActivation(ar *persistence.AssetRequest) (err e
 	}
 	return err
 }
-
 
 //On notify activation, modules will be installed and pushes configuration.
 func (prov *Provisioner) notifyActivation(resourceId string) error {

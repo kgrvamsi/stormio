@@ -66,6 +66,11 @@ func createAsset(response http.ResponseWriter, request *http.Request) {
 		log.Debugf("Still %d fips are available", count)
 	}
 
+    if asset.NotifyURL == nil {
+        sendErrorResponse(response, http.StatusPreconditionFailed, fmt.Errorf("No notifyURL present"))
+        return
+    }
+
 	err = conn.Create(asset)
 	defer conn.Close()
 	if err != nil {

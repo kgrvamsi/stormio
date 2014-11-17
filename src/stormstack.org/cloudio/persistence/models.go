@@ -99,6 +99,7 @@ type AssetRequest struct {
 	SerialKey       string          `json:"serialkey"`
 	AgentId         string          `json:"agentId"`
 	ControlProvider ControlProvider `json:"controlProvider"`
+	NotifyURL       string          `json:"notifyURL"`
 }
 
 type ActivationInfo struct {
