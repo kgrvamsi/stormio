@@ -42,7 +42,7 @@ func DeRegisterStormAgent(dr *persistence.AssetRequest) (err error) {
 			log.Errorf("[areq %s][res %s] Error in deregistering storm agent %v", dr.Id, dr.ResourceId, err)
 		}
 	}
-	go DomainDeleteAgent(dr)
+	dr.AgentId = ""
 	return
 }
 
@@ -74,7 +74,6 @@ func DomainDeleteAgent(arq *persistence.AssetRequest) (err error) {
 		return err
 	}
 	log.Debugf("[areq %s][res %s] Deleted Agent ID %s with stormlight", arq.Id, arq.ResourceId, arq.AgentId)
-	arq.AgentId = ""
 	return nil
 }
 func DomainAddAgent(arq *persistence.AssetRequest) (err error) {
@@ -128,10 +127,11 @@ func RegisterStormAgent(arq *persistence.AssetRequest, entityId string) (err err
 	arq.SerialKey = entityId
 	log.Debugf("[areq %s][res %s] Registered Agent with stormtracker %v", arq.Id, arq.ResourceId, arq.AgentId)
 	// Register the agent in Stormlight default domain
-	err = DomainAddAgent(arq)
-	if err != nil {
-		log.Debugf("[areq %s][res %s] Error in Adding agent %v to default domain %v", arq.Id, arq.ResourceId, arq.AgentId, arq.ControlProvider.DefaultDomainId)
-		return err
-	}
+	//err = DomainAddAgent(arq)
+	//if err != nil {
+	//	log.Debugf("[areq %s][res %s] Error in Adding agent %v to default domain %v", arq.Id, arq.ResourceId, arq.AgentId, arq.ControlProvider.DefaultDomainId)
+	//	go DeRegisterStormAgent(arq)
+	//	return err
+	//}
 	return nil
 }

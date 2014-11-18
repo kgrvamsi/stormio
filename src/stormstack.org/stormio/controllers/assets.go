@@ -98,7 +98,6 @@ func destroyAsset(response http.ResponseWriter, request *http.Request) {
 	aAsset := &persistence.AssetRequest{}
 	aAsset.DecodeFromRequest(request)
 
-	log.Debugf("Asset Request recieved is %#v", aAsset)
 	log.Debugf("Finding an asset with ID %s", aAsset.Id)
 	conn, err := persistence.DefaultSession()
 	if err != nil {
@@ -113,6 +112,7 @@ func destroyAsset(response http.ResponseWriter, request *http.Request) {
 		log.Debugf("Error in finding asset %s %v", asset.Id, err)
 		return
 	}
+	log.Debugf("Asset Request recieved is %#v", asset)
 	provisioner.DelNotification <- asset
 	defer conn.Close()
 	sendResponse("Asset "+aAsset.Id+" delete request accepted", http.StatusAccepted, response)

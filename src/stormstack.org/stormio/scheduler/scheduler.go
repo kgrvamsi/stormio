@@ -104,6 +104,7 @@ func (prov *Provisioner) StartProvisioner() {
 	go func() {
 		for delReq := range prov.DelNotification {
 			log.Debugf("[res %s] Delete notification recevied", delReq.ServerId)
+			//go stormstack.DomainDeleteAgent(delReq)
 			go stormstack.DeRegisterStormAgent(delReq)
 			go prov.notifyDeActivation(delReq)
 		}
@@ -175,15 +176,16 @@ func (prov *Provisioner) updateAndNotify(conn *persistence.Connection, arRes *pe
  */
 
 type NotifyAsset struct {
-	Id        string
-	Resource  string
-	Instance  string
+	Id        string `json:"id"`
+	Resource  string `json:"resource"`
+	Instance  string `json:"instance"`
 	IsActive  bool   `json:"isActive"`
 	IpAddress string `json:"ipAddress"`
+	AgentId   string `json:"agent"`
 }
 
 type NotifyResponse struct {
-	Asset NotifyAsset
+	Asset NotifyAsset `json:"asset"`
 }
 
 func (prov *Provisioner) notifyAttachAsset(arRes *persistence.AssetRequest) error {
@@ -193,6 +195,7 @@ func (prov *Provisioner) notifyAttachAsset(arRes *persistence.AssetRequest) erro
 	req.Asset.Instance = arRes.ServerId
 	req.Asset.IpAddress = arRes.IpAddress
 	req.Asset.IsActive = true
+	req.Asset.AgentId = arRes.AgentId
 
 	var resp persistence.AssetRequest
 	headers := make(http.Header)
@@ -298,6 +301,7 @@ func (prov *Provisioner) terminateInstance(ar *persistence.AssetRequest, deleteK
 	if entity, _ := serviceProvision.GetServer(ar.HostName, ar.ServerId); entity != nil {
 		i := 0
 		for ; i < 3; i++ {
+			log.Debugf("[areq %s][res %s]  About to deprovision the instance with serverID %s", ar.Id, ar.ResourceId, ar.ServerId)
 			if err = serviceProvision.DeprovisionInstance(ar); err == nil {
 				break
 			}
