@@ -179,13 +179,13 @@ func (prov *Provisioner) notifyAttachAsset(arRes *persistence.AssetRequest) erro
 	reqData := &goosehttp.RequestData{ReqHeaders: headers, ReqValue: arRes, RespValue: &arRes,
 		ExpectedStatus: []int{http.StatusOK}}
 	url := fmt.Sprintf("%s/resource/%s/asset", arRes.Notify.Url, arRes.ResourceId)
-	log.Debugf("[areq %s][res %s] Updating Vertex Platform [%s] with Asset details", arRes.Id, arRes.ResourceId, url)
+	log.Debugf("[areq %s][res %s] Updating Caller [%s] with Asset details", arRes.Id, arRes.ResourceId, url)
 	err := prov.Client.SendRequest(client.POST, "", url, reqData)
 	if err != nil {
-		log.Errorf("[areq %s][res %s] Vertex Error on Asset attach. Error[%v]", arRes.Id, arRes.ResourceId, err)
+		log.Errorf("[areq %s][res %s] Caller Error on Asset attach. Error[%v]", arRes.Id, arRes.ResourceId, err)
 		return err
 	}
-	log.Debugf("[areq %s][res %s] Update to Vertex on Asset attach acknowledged", arRes.Id, arRes.ResourceId)
+	log.Debugf("[areq %s][res %s] Update to Caller on Asset attach acknowledged", arRes.Id, arRes.ResourceId)
 	return nil
 }
 
@@ -197,10 +197,10 @@ func (prov *Provisioner) notifyDettachAsset(ar *persistence.AssetRequest) error 
 
 	err := prov.Client.SendRequest(client.DELETE, "", url, reqData)
 	if err != nil {
-		log.Errorf("[res %s] Vertex error on Asset Detach Error[%v]", ar.ResourceId, err)
+		log.Errorf("[res %s] Caller error on Asset Detach Error[%v]", ar.ResourceId, err)
 		return err
 	}
-	log.Debugf("[res %s] Deleted the attached asset in  Vertex Platform [%s]", ar.ResourceId, url)
+	log.Debugf("[res %s] Deleted the attached asset in  Caller [%s]", ar.ResourceId, url)
 	return nil
 }
 

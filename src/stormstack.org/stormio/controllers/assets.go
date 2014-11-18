@@ -15,7 +15,7 @@ import (
 )
 
 func initAssetRoutes(contextPath string, router *mux.Router) {
-	router.HandleFunc(contextPath+"/asset", createAsset).Methods("POST")
+	router.HandleFunc(contextPath+"/assetCreate", createAsset).Methods("POST")
 	subRouter := router.PathPrefix(contextPath + "/asset").Subrouter()
 	subRouter.HandleFunc("/{id}", retrieveAsset).Methods("GET")
 	subRouter.HandleFunc("/{id}/rename/{newName}", renameAsset).Methods("PUT")
@@ -46,6 +46,7 @@ func createAsset(response http.ResponseWriter, request *http.Request) {
 	asset.ReceivedOn = time.Now().String() //set the created time
 	asset.Status = persistence.RequestNew
 	asset.ModelId = asset.Model.Id
+	log.Debugf("Asset Request recieved is %#v", asset)
 	conn, err := persistence.DefaultSession()
 	if err != nil {
 		sendErrorResponse(response, http.StatusInternalServerError, err)
@@ -97,10 +98,11 @@ func destroyAsset(response http.ResponseWriter, request *http.Request) {
 	anAssetId := vars["id"]
 	conn, _ := persistence.DefaultSession()
 	defer conn.Close()
-	asset, err := conn.Find(bson.M{"resourceid": anAssetId})
+	asset, err := conn.Find(bson.M{"_id": anAssetId})
 
 	if err != nil {
 		sendResponse("Asset not found / already deleted", http.StatusNotFound, response)
+		log.Debugf("Error in finding asset %s %v", anAssetId, err)
 		return
 	}
 	provisioner.DelNotification <- asset
