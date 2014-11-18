@@ -74,6 +74,10 @@ func createAsset(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+    if asset.HostName == "" {
+        asset.HostName = asset.Model.Name
+    }
+
 	err = conn.Create(asset)
 	defer conn.Close()
 	if err != nil {
@@ -94,6 +98,7 @@ func destroyAsset(response http.ResponseWriter, request *http.Request) {
 	aAsset := &persistence.AssetRequest{}
 	aAsset.DecodeFromRequest(request)
 
+	log.Debugf("Asset Request recieved is %#v", aAsset)
 	log.Debugf("Finding an asset with ID %s", aAsset.Id)
 	conn, err := persistence.DefaultSession()
 	if err != nil {
