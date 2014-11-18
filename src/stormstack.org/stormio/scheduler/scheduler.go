@@ -9,11 +9,11 @@ import (
 	goosehttp "launchpad.net/goose/http"
 	"launchpad.net/goose/identity"
 	"net/http"
-	"stormstack.org/cloudio/cache"
-	"stormstack.org/cloudio/persistence"
-	"stormstack.org/cloudio/provision"
-	"stormstack.org/cloudio/stormstack"
-	"stormstack.org/cloudio/util"
+	"stormstack.org/stormio/cache"
+	"stormstack.org/stormio/persistence"
+	"stormstack.org/stormio/provision"
+	"stormstack.org/stormio/stormstack"
+	"stormstack.org/stormio/util"
 	"time"
 )
 

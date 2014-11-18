@@ -1,7 +1,7 @@
 package stormstack
 
 import (
-	"stormstack.org/cloudio/persistence"
+	"stormstack.org/stormio/persistence"
 	"fmt"
 	log "github.com/cihub/seelog"
 	"launchpad.net/goose/client"

@@ -1,9 +1,9 @@
 package provision
 
 import (
-	persistence "stormstack.org/cloudio/persistence"
-	"stormstack.org/cloudio/stormstack"
-	"stormstack.org/cloudio/util"
+	persistence "stormstack.org/stormio/persistence"
+	"stormstack.org/stormio/stormstack"
+	"stormstack.org/stormio/util"
 	"fmt"
 	log "github.com/cihub/seelog"
 	"launchpad.net/goose/client"
