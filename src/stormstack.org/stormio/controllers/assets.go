@@ -1,16 +1,16 @@
 package controllers
 
 import (
-	"stormstack.org/stormio/cache"
-	"stormstack.org/stormio/persistence"
-	"stormstack.org/stormio/provision"
-	"stormstack.org/stormio/util"
 	"encoding/json"
 	"fmt"
 	log "github.com/cihub/seelog"
 	"github.com/gorilla/mux"
 	"labix.org/v2/mgo/bson"
 	"net/http"
+	"stormstack.org/stormio/cache"
+	"stormstack.org/stormio/persistence"
+	"stormstack.org/stormio/provision"
+	"stormstack.org/stormio/util"
 	"time"
 )
 
@@ -66,10 +66,15 @@ func createAsset(response http.ResponseWriter, request *http.Request) {
 		log.Debugf("Still %d fips are available", count)
 	}
 
-    if asset.NotifyURL == "" {
-        sendErrorResponse(response, http.StatusPreconditionFailed, fmt.Errorf("No notifyURL present"))
-        return
-    }
+	if asset.Notify.Url == "" {
+		sendErrorResponse(response, http.StatusPreconditionFailed, fmt.Errorf("No Notify callback URL present"))
+		return
+	}
+
+	if asset.Notify.Token == "" {
+		sendErrorResponse(response, http.StatusPreconditionFailed, fmt.Errorf("No Notify callback Token present"))
+		return
+	}
 
 	err = conn.Create(asset)
 	defer conn.Close()

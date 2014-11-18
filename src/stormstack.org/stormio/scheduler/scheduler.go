@@ -174,9 +174,11 @@ func (prov *Provisioner) updateAndNotify(conn *persistence.Connection, arRes *pe
  * Send this information to VertexPlatform
  */
 func (prov *Provisioner) notifyAttachAsset(arRes *persistence.AssetRequest) error {
-	reqData := &goosehttp.RequestData{ReqValue: arRes, RespValue: &arRes,
+	headers := make(http.Header)
+	headers.Add("V-Auth-Token", arRes.Notify.Token)
+	reqData := &goosehttp.RequestData{ReqHeaders: headers, ReqValue: arRes, RespValue: &arRes,
 		ExpectedStatus: []int{http.StatusOK}}
-	url := fmt.Sprintf("%s/resource/%s/asset", arRes.NotifyURL, arRes.ResourceId)
+	url := fmt.Sprintf("%s/resource/%s/asset", arRes.Notify.Url, arRes.ResourceId)
 	log.Debugf("[areq %s][res %s] Updating Vertex Platform [%s] with Asset details", arRes.Id, arRes.ResourceId, url)
 	err := prov.Client.SendRequest(client.POST, "", url, reqData)
 	if err != nil {
@@ -187,16 +189,18 @@ func (prov *Provisioner) notifyAttachAsset(arRes *persistence.AssetRequest) erro
 	return nil
 }
 
-func (prov *Provisioner) notifyDettachAsset(notifyURL, resourceId string) error {
-	reqData := &goosehttp.RequestData{ExpectedStatus: []int{http.StatusOK}}
-	url := fmt.Sprintf("%s/resource/%s/asset", notifyURL, resourceId)
+func (prov *Provisioner) notifyDettachAsset(ar *persistence.AssetRequest) error {
+	headers := make(http.Header)
+	headers.Add("V-Auth-Token", ar.Notify.Token)
+	reqData := &goosehttp.RequestData{ReqHeaders: headers, ExpectedStatus: []int{http.StatusOK}}
+	url := fmt.Sprintf("%s/resource/%s/asset", ar.Notify.Url, ar.ResourceId)
 
 	err := prov.Client.SendRequest(client.DELETE, "", url, reqData)
 	if err != nil {
-		log.Errorf("[res %s] Vertex error on Asset Detach Error[%v]", resourceId, err)
+		log.Errorf("[res %s] Vertex error on Asset Detach Error[%v]", ar.ResourceId, err)
 		return err
 	}
-	log.Debugf("[res %s] Deleted the attached asset in  Vertex Platform [%s]", resourceId, url)
+	log.Debugf("[res %s] Deleted the attached asset in  Vertex Platform [%s]", ar.ResourceId, url)
 	return nil
 }
 
@@ -257,7 +261,7 @@ func (prov *Provisioner) RescheduleOldRequests() {
 }
 
 func (prov *Provisioner) terminateFailedResource(ar *persistence.AssetRequest, deleteSaltKey bool) error {
-	prov.notifyDettachAsset(ar.NotifyURL, ar.ResourceId)
+	prov.notifyDettachAsset(ar)
 	return prov.terminateInstance(ar, deleteSaltKey)
 }
 

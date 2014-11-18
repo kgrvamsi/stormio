@@ -77,6 +77,11 @@ const (
 	RequestRemediation        = "REMEDIATION"
 )
 
+type NotifyCaller struct {
+	Url   string `json:"url"`
+	Token string `json:"token"`
+}
+
 // Entity AssetRequest
 type AssetRequest struct {
 	Id              string        `json:"id,omitempty" bson:"_id"` // qbs:"pk"`
@@ -99,7 +104,7 @@ type AssetRequest struct {
 	SerialKey       string          `json:"serialkey"`
 	AgentId         string          `json:"agentId"`
 	ControlProvider ControlProvider `json:"controlProvider"`
-	NotifyURL       string          `json:"notifyURL"`
+	Notify          NotifyCaller
 }
 
 type ActivationInfo struct {
