@@ -15,10 +15,10 @@ import (
 )
 
 func initAssetRoutes(contextPath string, router *mux.Router) {
-	router.HandleFunc(contextPath+"/assetCreate", createAsset).Methods("POST")
-	subRouter := router.PathPrefix(contextPath + "/asset").Subrouter()
+	router.HandleFunc(contextPath+"/createAsset", createAsset).Methods("POST")
+	subRouter := router.PathPrefix(contextPath + "/tasks").Subrouter()
 	subRouter.HandleFunc("/{id}", retrieveAsset).Methods("GET")
-	subRouter.HandleFunc("/{id}/rename/{newName}", renameAsset).Methods("PUT")
+	//subRouter.HandleFunc("/{id}/rename/{newName}", renameAsset).Methods("PUT")
 	subRouter.HandleFunc("/{id}", destroyAsset).Methods("DELETE")
 }
 
@@ -27,7 +27,8 @@ func retrieveAsset(response http.ResponseWriter, request *http.Request) {
 	anAssetId := mux.Vars(request)["id"]
 	conn, err := persistence.DefaultSession()
 	if err != nil {
-
+		sendResponse("DB connection failure", http.StatusServiceUnavailable, response)
+		return
 	}
 	defer conn.Close()
 	if ar, err := conn.Find(bson.M{"_id": anAssetId}); err != nil {
@@ -96,7 +97,12 @@ func createAsset(response http.ResponseWriter, request *http.Request) {
 func destroyAsset(response http.ResponseWriter, request *http.Request) {
 	vars := mux.Vars(request)
 	anAssetId := vars["id"]
-	conn, _ := persistence.DefaultSession()
+	log.Debugf("Finding an asset with ID %s", anAssetId)
+	conn, err := persistence.DefaultSession()
+	if err != nil {
+		sendResponse("DB connection failure", http.StatusServiceUnavailable, response)
+		return
+	}
 	defer conn.Close()
 	asset, err := conn.Find(bson.M{"_id": anAssetId})
 
@@ -122,7 +128,11 @@ func renameAsset(response http.ResponseWriter, request *http.Request) {
 	vars := mux.Vars(request)
 	assetId := vars["id"]
 	newName := vars["newName"]
-	conn, _ := persistence.DefaultSession()
+	conn, err := persistence.DefaultSession()
+	if err != nil {
+		sendResponse("DB connection failure", http.StatusServiceUnavailable, response)
+		return
+	}
 	defer conn.Close()
 	if asset, err := conn.Find(bson.M{"_id": assetId}); err == nil {
 		if prov, err := cache.GetProvider(&asset.Provider); err == nil {
