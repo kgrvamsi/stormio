@@ -16,10 +16,11 @@ import (
 
 func initAssetRoutes(contextPath string, router *mux.Router) {
 	router.HandleFunc(contextPath+"/createAsset", createAsset).Methods("POST")
+	router.HandleFunc(contextPath+"/deleteAsset", destroyAsset).Methods("POST")
 	subRouter := router.PathPrefix(contextPath + "/tasks").Subrouter()
 	subRouter.HandleFunc("/{id}", retrieveAsset).Methods("GET")
 	//subRouter.HandleFunc("/{id}/rename/{newName}", renameAsset).Methods("PUT")
-	subRouter.HandleFunc("/{id}", destroyAsset).Methods("DELETE")
+	//subRouter.HandleFunc("/{id}", destroyAsset).Methods("DELETE")
 }
 
 // CRUD for AssetRequest starts from here
@@ -73,11 +74,6 @@ func createAsset(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	if asset.Notify.Token == "" {
-		sendErrorResponse(response, http.StatusPreconditionFailed, fmt.Errorf("No Notify callback Token present"))
-		return
-	}
-
 	err = conn.Create(asset)
 	defer conn.Close()
 	if err != nil {
@@ -95,25 +91,26 @@ func createAsset(response http.ResponseWriter, request *http.Request) {
 }
 
 func destroyAsset(response http.ResponseWriter, request *http.Request) {
-	vars := mux.Vars(request)
-	anAssetId := vars["id"]
-	log.Debugf("Finding an asset with ID %s", anAssetId)
+	aAsset := &persistence.AssetRequest{}
+	aAsset.DecodeFromRequest(request)
+
+	log.Debugf("Finding an asset with ID %s", aAsset.Id)
 	conn, err := persistence.DefaultSession()
 	if err != nil {
 		sendResponse("DB connection failure", http.StatusServiceUnavailable, response)
 		return
 	}
 	defer conn.Close()
-	asset, err := conn.Find(bson.M{"_id": anAssetId})
+	asset, err := conn.Find(bson.M{"_id": aAsset.Id})
 
 	if err != nil {
 		sendResponse("Asset not found / already deleted", http.StatusNotFound, response)
-		log.Debugf("Error in finding asset %s %v", anAssetId, err)
+		log.Debugf("Error in finding asset %s %v", asset.Id, err)
 		return
 	}
 	provisioner.DelNotification <- asset
 	defer conn.Close()
-	sendResponse("Asset "+anAssetId+" delete request accepted", http.StatusAccepted, response)
+	sendResponse("Asset "+aAsset.Id+" delete request accepted", http.StatusAccepted, response)
 }
 
 func ValidateAssetProvider(response http.ResponseWriter, request *http.Request) (*provision.ServiceProvision, error) {

@@ -173,12 +173,33 @@ func (prov *Provisioner) updateAndNotify(conn *persistence.Connection, arRes *pe
 /*
  * Send this information to VertexPlatform
  */
+
+type NotifyAsset struct {
+	Id        string
+	Resource  string
+	Instance  string
+	IsActive  bool   `json:"isActive"`
+	IpAddress string `json:"ipAddress"`
+}
+
+type NotifyResponse struct {
+	Asset NotifyAsset
+}
+
 func (prov *Provisioner) notifyAttachAsset(arRes *persistence.AssetRequest) error {
+	var req NotifyResponse
+	req.Asset.Id = arRes.Id
+	req.Asset.Resource = arRes.ResourceId
+	req.Asset.Instance = arRes.ServerId
+	req.Asset.IpAddress = arRes.IpAddress
+	req.Asset.IsActive = true
+
+	var resp persistence.AssetRequest
 	headers := make(http.Header)
 	headers.Add("V-Auth-Token", arRes.Notify.Token)
-	reqData := &goosehttp.RequestData{ReqHeaders: headers, ReqValue: arRes, RespValue: &arRes,
+	reqData := &goosehttp.RequestData{ReqHeaders: headers, ReqValue: req, RespValue: &resp,
 		ExpectedStatus: []int{http.StatusOK}}
-	url := fmt.Sprintf("%s/resource/%s/asset", arRes.Notify.Url, arRes.ResourceId)
+	url := fmt.Sprintf("%s", arRes.Notify.Url)
 	log.Debugf("[areq %s][res %s] Updating Caller [%s] with Asset details", arRes.Id, arRes.ResourceId, url)
 	err := prov.Client.SendRequest(client.POST, "", url, reqData)
 	if err != nil {
@@ -193,7 +214,7 @@ func (prov *Provisioner) notifyDettachAsset(ar *persistence.AssetRequest) error 
 	headers := make(http.Header)
 	headers.Add("V-Auth-Token", ar.Notify.Token)
 	reqData := &goosehttp.RequestData{ReqHeaders: headers, ExpectedStatus: []int{http.StatusOK}}
-	url := fmt.Sprintf("%s/resource/%s/asset", ar.Notify.Url, ar.ResourceId)
+	url := fmt.Sprintf("%s/assets/%s", ar.Notify.Url, ar.Id)
 
 	err := prov.Client.SendRequest(client.DELETE, "", url, reqData)
 	if err != nil {
