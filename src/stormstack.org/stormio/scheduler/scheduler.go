@@ -217,8 +217,8 @@ func (prov *Provisioner) notifyAttachAsset(arRes *persistence.AssetRequest) erro
 func (prov *Provisioner) notifyDettachAsset(ar *persistence.AssetRequest) error {
 	headers := make(http.Header)
 	headers.Add("V-Auth-Token", ar.Notify.Token)
-	reqData := &goosehttp.RequestData{ReqHeaders: headers, ExpectedStatus: []int{http.StatusOK}}
-	url := fmt.Sprintf("%s/assets/%s", ar.Notify.Url, ar.Id)
+	reqData := &goosehttp.RequestData{ReqHeaders: headers, ExpectedStatus: []int{http.StatusOK, http.StatusNoContent}}
+	url := fmt.Sprintf("%s/%s", ar.Notify.Url, ar.Id)
 
 	err := prov.Client.SendRequest(client.DELETE, "", url, reqData)
 	if err != nil {
