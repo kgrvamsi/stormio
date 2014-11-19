@@ -5,6 +5,7 @@ import (
 	"fmt"
 	log "github.com/cihub/seelog"
 	"github.com/gorilla/mux"
+	"io/ioutil"
 	"labix.org/v2/mgo/bson"
 	"net/http"
 	"stormstack.org/stormio/cache"
@@ -74,9 +75,9 @@ func createAsset(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-    if asset.HostName == "" {
-        asset.HostName = asset.Model.Name
-    }
+	if asset.HostName == "" {
+		asset.HostName = asset.Model.Name
+	}
 
 	err = conn.Create(asset)
 	defer conn.Close()
@@ -94,11 +95,25 @@ func createAsset(response http.ResponseWriter, request *http.Request) {
 	return
 }
 
-func destroyAsset(response http.ResponseWriter, request *http.Request) {
-	aAsset := &persistence.AssetRequest{}
-	aAsset.DecodeFromRequest(request)
+type AssetDestroy struct {
+	Id string `json:"id"`
+}
 
-	log.Debugf("Finding an asset with ID %s", aAsset.Id)
+func destroyAsset(response http.ResponseWriter, request *http.Request) {
+	body, err := ioutil.ReadAll(request.Body)
+	if err != nil {
+		sendErrorResponse(response, http.StatusBadRequest, fmt.Errorf("Could not read the request body"))
+		return
+	}
+
+	var aAsset AssetDestroy
+	err = json.Unmarshal(body, &aAsset)
+	if err != nil {
+		sendErrorResponse(response, http.StatusBadRequest, fmt.Errorf("Could not unmarshal the request body"))
+		return
+	}
+
+	log.Debugf("Finding an asset with ID %v in DB", aAsset.Id)
 	conn, err := persistence.DefaultSession()
 	if err != nil {
 		sendResponse("DB connection failure", http.StatusServiceUnavailable, response)

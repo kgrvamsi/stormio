@@ -107,6 +107,7 @@ func (prov *Provisioner) StartProvisioner() {
 			//go stormstack.DomainDeleteAgent(delReq)
 			go stormstack.DeRegisterStormAgent(delReq)
 			go prov.notifyDeActivation(delReq)
+			go prov.notifyDettachAsset(delReq)
 		}
 	}()
 
