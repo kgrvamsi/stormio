@@ -104,7 +104,7 @@ func (prov *Provisioner) StartProvisioner() {
 	go func() {
 		for delReq := range prov.DelNotification {
 			log.Debugf("[res %s] Delete notification recevied", delReq.ServerId)
-			//go stormstack.DomainDeleteAgent(delReq)
+			go stormstack.DomainDeleteAgent(delReq)
 			go stormstack.DeRegisterStormAgent(delReq)
 			go prov.notifyDeActivation(delReq)
 			go prov.notifyDettachAsset(delReq)
