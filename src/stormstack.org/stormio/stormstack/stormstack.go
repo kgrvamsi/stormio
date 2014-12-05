@@ -42,7 +42,7 @@ func DeRegisterStormAgent(dr *persistence.AssetRequest) (err error) {
 			log.Errorf("[areq %s][res %s] Error in deregistering storm agent %v", dr.Id, dr.ResourceId, err)
 		}
 	}
-	dr.AgentId = ""
+	//dr.AgentId = ""
 	return
 }
 
@@ -113,6 +113,7 @@ func RegisterStormAgent(arq *persistence.AssetRequest, entityId string) (err err
 	req.SerialKey = entityId
 	req.Stoken = arq.ControlTokenId
 	req.StormBolt = arq.ControlProvider.Bolt
+	req.Id = arq.AgentId
 
 	log.Debugf("Registering storm agent with tracker %#v", req)
 	var resp persistence.StormAgent
