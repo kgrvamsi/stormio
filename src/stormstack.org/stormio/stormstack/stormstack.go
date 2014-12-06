@@ -104,10 +104,6 @@ func DomainAddAgent(arq *persistence.AssetRequest) (err error) {
 }
 
 func RegisterStormAgent(arq *persistence.AssetRequest, entityId string) (err error) {
-	if arq.AgentId != "" {
-		log.Debugf("[areq %s][res %s] Agent ID already exists agent Id is %v", arq.Id, arq.ResourceId, arq.AgentId)
-		return nil
-	}
 	arq.ServerId = entityId
 	var req persistence.StormAgent
 	req.SerialKey = entityId
