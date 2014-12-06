@@ -75,6 +75,11 @@ func createAsset(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	if asset.AgentId == "" {
+		sendErrorResponse(response, http.StatusPreconditionFailed, fmt.Errorf("No agentId present in the request"))
+		return
+	}
+
 	if asset.HostName == "" {
 		asset.HostName = asset.Model.Name
 	}
