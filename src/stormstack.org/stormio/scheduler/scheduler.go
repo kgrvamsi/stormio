@@ -135,6 +135,9 @@ func (prov *Provisioner) createServer(conn *persistence.Connection, ar *persiste
 			created = true
 			break
 		} else {
+			if entityId != "" {
+				ar.ServerId = entityId
+			}
 			perr := err.(*provision.ProvisionError)
 			switch perr.Code {
 			case provision.ErrorServerCreate, provision.ErrorSettingHostName, provision.ErrorAssociateIP, provision.ErrorStormRegister:
