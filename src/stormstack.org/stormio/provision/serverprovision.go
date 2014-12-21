@@ -160,7 +160,7 @@ func (svc *ServiceProvision) ProvisionInstance(asset *persistence.AssetRequest) 
 	}
 	if err != nil {
 		err = &ProvisionError{ErrorAssociateIP, err}
-		//return TODO: Debate, do we need to throw an error if fip allocation fails??
+		return
 	}
 	address, err := net.LookupAddr(fip)
 	if err != nil && len(address) > 0 {
