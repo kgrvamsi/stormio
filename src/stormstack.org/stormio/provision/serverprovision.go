@@ -1,9 +1,6 @@
 package provision
 
 import (
-	persistence "stormstack.org/stormio/persistence"
-	"stormstack.org/stormio/stormstack"
-	"stormstack.org/stormio/util"
 	"fmt"
 	log "github.com/cihub/seelog"
 	"launchpad.net/goose/client"
@@ -12,6 +9,9 @@ import (
 	"launchpad.net/goose/neutron"
 	"launchpad.net/goose/nova"
 	"net"
+	persistence "stormstack.org/stormio/persistence"
+	"stormstack.org/stormio/stormstack"
+	"stormstack.org/stormio/util"
 	"sync"
 	"time"
 )
@@ -358,8 +358,14 @@ func (fpno *FIPWithNova) Attach(serverId string) (string, error) {
 		} else {
 			log.Debugf("FloatingIP allocated :%s", ip.IP)
 			err := fpno.nova.SetIPV4Address(serverId, ip.IP)
+			if err != nil {
+				log.Errorf("Fail to set accessIPv4 address, error:%v", err)
+				fpno.nova.DeleteFloatingIP(ip.Id)
+				return "", fmt.Errorf("Failed to attach access IP with Floating IP")
+			}
 			err = fpno.nova.AddServerFloatingIP(serverId, ip.IP)
 			if err != nil {
+				fpno.nova.DeleteFloatingIP(ip.Id)
 				log.Errorf("Fail to attach floating ip, error:%v", err)
 				return "", fmt.Errorf("Failed to attach Floating IP")
 			}
