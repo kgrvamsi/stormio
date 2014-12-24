@@ -10,7 +10,7 @@ type AssetProvider struct {
 	Id             string `json:"id" bson:"_id"`
 	Username       string `json:"username"`
 	Password       string `json:"password"`
-	EndPointURL    string `json:"endPointURL"`
+	EndPointURL    string `json:"endPoint"`
 	Tenant         string `json:"tenant"`
 	RegionName     string `json:"regionName"`
 	DefaultNetName string `json:"defaultNetName,omitempty"`
@@ -53,13 +53,13 @@ type StormAgent struct {
 //Control Provider
 type ControlProvider struct {
 	Id              string    `json:"id" bson:"_id"`
-	StormtrackerURL string    `json:"stormtrackerURL"`
-	StormlightURL   string    `json:"stormlightURL"`
-	StormkeeperURL  string    `json:"stormkeeperURL"`
+	StormtrackerURL string    `json:"stormtracker"`
+	StormlightURL   string    `json:"stormlight"`
+	StormkeeperURL  string    `json:"stormkeeper"`
 	Name            string    `json:"name"`
 	Description     string    `json:"description"`
 	Bolt            StormBolt `json:"bolt"`
-	DefaultDomainId string    `json:"defaultDomainId"`
+	DefaultDomainId string    `json:"domain"`
 }
 
 const (
@@ -77,11 +77,16 @@ const (
 	RequestRemediation        = "REMEDIATION"
 )
 
+type NotifyCaller struct {
+	Url   string `json:"url"`
+	Token string
+}
+
 // Entity AssetRequest
 type AssetRequest struct {
 	Id              string        `json:"id,omitempty" bson:"_id"` // qbs:"pk"`
 	HostName        string        `json:"hostName"`
-	ResourceId      string        `json:"resourceId"`
+	ResourceId      string        `json:"resource"`
 	ServerId        string        `json:"serverId"`
 	IpAddress       string        `json:"ipAddress"`
 	ReceivedOn      string        `json:"receivedOn"`
@@ -99,6 +104,7 @@ type AssetRequest struct {
 	SerialKey       string          `json:"serialkey"`
 	AgentId         string          `json:"agentId"`
 	ControlProvider ControlProvider `json:"controlProvider"`
+	Notify          NotifyCaller
 }
 
 type ActivationInfo struct {

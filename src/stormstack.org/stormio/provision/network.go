@@ -1,7 +1,7 @@
 package provision
 
 import (
-	"stormstack.org/cloudio/persistence"
+	"stormstack.org/stormio/persistence"
 	log "github.com/cihub/seelog"
 	"launchpad.net/goose/errors"
 	"launchpad.net/goose/neutron"

@@ -1,12 +1,12 @@
 <seelog minlevel="debug">
       <exceptions>
-	  <exception filepattern="sceduler.go" minlevel="error"/>
+	  <exception filepattern="sceduler.go" minlevel="debug"/>
       </exceptions>
       <outputs>
-	<file path="/var/log/cloudio/cloudio.log" formatid="common"/>
+	<file path="/var/log/stormio/stormio.log" formatid="common"/>
 
 	<filter levels="critic al">
-			<file path="/var/log/cloudio/cloudio-critical.log" formatid="critical"/>
+			<file path="/var/log/stormio/stormio-critical.log" formatid="critical"/>
 	    <!--
 	      <smtp formatid="criticalemail" senderaddress="noreply-notification-service@none.org" sendername="Automatic notification service" hostname="mail.none.org" hostport="587" username="nns" password="123">
 		  <recipient address="john-smith@none.com"/>

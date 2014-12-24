@@ -1,8 +1,8 @@
 package cache
 
 import (
-	"stormstack.org/cloudio/persistence"
-	"stormstack.org/cloudio/provision"
+	"stormstack.org/stormio/persistence"
+	"stormstack.org/stormio/provision"
 	log "github.com/cihub/seelog"
 	goosehttp "launchpad.net/goose/http"
 	"sync"

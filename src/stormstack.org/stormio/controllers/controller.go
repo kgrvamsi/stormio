@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"stormstack.org/cloudio/persistence"
-	"stormstack.org/cloudio/scheduler"
-	"stormstack.org/cloudio/util"
+	"stormstack.org/stormio/persistence"
+	"stormstack.org/stormio/scheduler"
+	"stormstack.org/stormio/util"
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/base64"

@@ -9,7 +9,7 @@ import (
 
 func DisableTestCreate(t *testing.T) {
 	assetDS := &AssetDS{}
-	err := assetDS.InitDatabase("mysql", "cloudio", "cloudio", "password", "localhost", "3306")
+	err := assetDS.InitDatabase("mysql", "stormio", "stormio", "password", "localhost", "3306")
 	if err != nil {
 		t.Errorf(err.Error())
 		return
@@ -28,7 +28,7 @@ func DisableTestCreate(t *testing.T) {
 
 func DisableTestUpate(t *testing.T) {
 	assetDS := &AssetDS{}
-	err := assetDS.InitDatabase("mysql", "cloudio", "cloudio", "password", "localhost", "3306")
+	err := assetDS.InitDatabase("mysql", "stormio", "stormio", "password", "localhost", "3306")
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -48,7 +48,7 @@ func DisableTestUpate(t *testing.T) {
 
 func DisableTestRemove(t *testing.T) {
 	assetDS := &AssetDS{}
-	err := assetDS.InitDatabase("mysql", "cloudio", "cloudio", "password", "localhost", "3306")
+	err := assetDS.InitDatabase("mysql", "stormio", "stormio", "password", "localhost", "3306")
 	if err != nil {
 		t.Errorf(err.Error())
 	}
@@ -67,7 +67,7 @@ func DisableTestRemove(t *testing.T) {
 
 func DisableTestFind(t *testing.T) {
 	assetDS := &AssetDS{}
-	err := assetDS.InitDatabase("mysql", "cloudio", "cloudio", "password", "localhost", "3306")
+	err := assetDS.InitDatabase("mysql", "stormio", "stormio", "password", "localhost", "3306")
 	if err != nil {
 		t.Errorf(err.Error())
 	}

@@ -1,7 +1,7 @@
 package persistence
 
 import (
-	"stormstack.org/cloudio/util"
+	"stormstack.org/stormio/util"
 	"fmt"
 	log "github.com/cihub/seelog"
 	"github.com/nu7hatch/gouuid"

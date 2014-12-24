@@ -1,7 +1,7 @@
 package util
 
 import (
-	"stormstack.org/cloudio/conf"
+	"stormstack.org/stormio/conf"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	defaultLocation = "/etc/cloudio/default.cfg"
+	defaultLocation = "/etc/stormio/default.cfg"
 )
 
 var (
@@ -93,15 +93,15 @@ func LoadProperties() {
         }
 
         if !found {
-                fmt.Printf("Second Attempt: reading Profile from Environment Variables\n \tCLOUDIOPATH= %s \n\tCLOUDCONFIG= %s\n",
-                                os.Getenv("CLOUDIOPATH"), os.Getenv("CLOUDIOCONFIG"))
-                fileName := os.Getenv("CLOUDIOCONFIG")
+                fmt.Printf("Second Attempt: reading Profile from Environment Variables\n \tSTORMIOPATH= %s \n\tCLOUDCONFIG= %s\n",
+                                os.Getenv("STORMIOPATH"), os.Getenv("STORMIOCONFIG"))
+                fileName := os.Getenv("STORMIOCONFIG")
 
                 // read from the environment
                 if fileName == "" {
-                        profilePath = os.Getenv("CLOUDIOPATH") + "/cloudio.cfg"
+                        profilePath = os.Getenv("STORMIOPATH") + "/stormio.cfg"
                 } else {
-                        profilePath = os.Getenv("CLOUDIOPATH") + "/" + fileName
+                        profilePath = os.Getenv("STORMIOPATH") + "/" + fileName
                 }
                 found, _ = exists(profilePath)
         }

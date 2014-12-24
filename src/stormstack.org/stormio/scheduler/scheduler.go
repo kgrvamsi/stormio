@@ -1,11 +1,6 @@
 package scheduler
 
 import (
-	"stormstack.org/cloudio/cache"
-	"stormstack.org/cloudio/persistence"
-	"stormstack.org/cloudio/provision"
-	"stormstack.org/cloudio/stormstack"
-	"stormstack.org/cloudio/util"
 	"fmt"
 	log "github.com/cihub/seelog"
 	"labix.org/v2/mgo/bson"
@@ -14,6 +9,11 @@ import (
 	goosehttp "launchpad.net/goose/http"
 	"launchpad.net/goose/identity"
 	"net/http"
+	"stormstack.org/stormio/cache"
+	"stormstack.org/stormio/persistence"
+	"stormstack.org/stormio/provision"
+	"stormstack.org/stormio/stormstack"
+	"stormstack.org/stormio/util"
 	"time"
 )
 
@@ -104,8 +104,10 @@ func (prov *Provisioner) StartProvisioner() {
 	go func() {
 		for delReq := range prov.DelNotification {
 			log.Debugf("[res %s] Delete notification recevied", delReq.ServerId)
+			go stormstack.DomainDeleteAgent(delReq)
 			go stormstack.DeRegisterStormAgent(delReq)
 			go prov.notifyDeActivation(delReq)
+			go prov.notifyDettachAsset(delReq)
 		}
 	}()
 
@@ -133,6 +135,9 @@ func (prov *Provisioner) createServer(conn *persistence.Connection, ar *persiste
 			created = true
 			break
 		} else {
+			if entityId != "" {
+				ar.ServerId = entityId
+			}
 			perr := err.(*provision.ProvisionError)
 			switch perr.Code {
 			case provision.ErrorServerCreate, provision.ErrorSettingHostName, provision.ErrorAssociateIP, provision.ErrorStormRegister:
@@ -173,32 +178,57 @@ func (prov *Provisioner) updateAndNotify(conn *persistence.Connection, arRes *pe
 /*
  * Send this information to VertexPlatform
  */
+
+type NotifyAsset struct {
+	Id        string `json:"id"`
+	Resource  string `json:"resource"`
+	Instance  string `json:"instance"`
+	IsActive  bool   `json:"isActive"`
+	IpAddress string `json:"ipAddress"`
+	AgentId   string `json:"agent"`
+}
+
+type NotifyResponse struct {
+	Asset NotifyAsset `json:"asset"`
+}
+
 func (prov *Provisioner) notifyAttachAsset(arRes *persistence.AssetRequest) error {
-	reqData := &goosehttp.RequestData{ReqValue: arRes, RespValue: &arRes,
+	var req NotifyResponse
+	req.Asset.Id = arRes.Id
+	req.Asset.Resource = arRes.ResourceId
+	req.Asset.Instance = arRes.ServerId
+	req.Asset.IpAddress = arRes.IpAddress
+	req.Asset.IsActive = true
+	req.Asset.AgentId = arRes.AgentId
+
+	var resp persistence.AssetRequest
+	headers := make(http.Header)
+	headers.Add("V-Auth-Token", arRes.Notify.Token)
+	reqData := &goosehttp.RequestData{ReqHeaders: headers, ReqValue: req, RespValue: &resp,
 		ExpectedStatus: []int{http.StatusOK}}
-	vertexPlatformURL := util.GetString("external", "vertex-url")
-	url := fmt.Sprintf("%s/resource/%s/asset", vertexPlatformURL, arRes.ResourceId)
-	log.Debugf("[areq %s][res %s] Updating Vertex Platform [%s] with Asset details", arRes.Id, arRes.ResourceId, url)
+	url := fmt.Sprintf("%s", arRes.Notify.Url)
+	log.Debugf("[areq %s][res %s] Updating Caller [%s] with Asset details", arRes.Id, arRes.ResourceId, url)
 	err := prov.Client.SendRequest(client.POST, "", url, reqData)
 	if err != nil {
-		log.Errorf("[areq %s][res %s] Vertex Error on Asset attach. Error[%v]", arRes.Id, arRes.ResourceId, err)
+		log.Errorf("[areq %s][res %s] Caller Error on Asset attach. Error[%v]", arRes.Id, arRes.ResourceId, err)
 		return err
 	}
-	log.Debugf("[areq %s][res %s] Update to Vertex on Asset attach acknowledged", arRes.Id, arRes.ResourceId)
+	log.Debugf("[areq %s][res %s] Update to Caller on Asset attach acknowledged", arRes.Id, arRes.ResourceId)
 	return nil
 }
 
-func (prov *Provisioner) notifyDettachAsset(resourceId string) error {
-	reqData := &goosehttp.RequestData{ExpectedStatus: []int{http.StatusOK}}
-	vertexPlatformURL := util.GetString("external", "vertex-url")
-	url := fmt.Sprintf("%s/resource/%s/asset", vertexPlatformURL, resourceId)
+func (prov *Provisioner) notifyDettachAsset(ar *persistence.AssetRequest) error {
+	headers := make(http.Header)
+	headers.Add("V-Auth-Token", ar.Notify.Token)
+	reqData := &goosehttp.RequestData{ReqHeaders: headers, ExpectedStatus: []int{http.StatusOK, http.StatusNoContent}}
+	url := fmt.Sprintf("%s/%s", ar.Notify.Url, ar.Id)
 
 	err := prov.Client.SendRequest(client.DELETE, "", url, reqData)
 	if err != nil {
-		log.Errorf("[res %s] Vertex error on Asset Detach Error[%v]", resourceId, err)
+		log.Errorf("[res %s] Caller error on Asset Detach Error[%v]", ar.ResourceId, err)
 		return err
 	}
-	log.Debugf("[res %s] Deleted the attached asset in  Vertex Platform [%s]", resourceId, url)
+	log.Debugf("[res %s] Deleted the attached asset in  Caller [%s]", ar.ResourceId, url)
 	return nil
 }
 
@@ -259,7 +289,7 @@ func (prov *Provisioner) RescheduleOldRequests() {
 }
 
 func (prov *Provisioner) terminateFailedResource(ar *persistence.AssetRequest, deleteSaltKey bool) error {
-	prov.notifyDettachAsset(ar.ResourceId)
+	prov.notifyDettachAsset(ar)
 	return prov.terminateInstance(ar, deleteSaltKey)
 }
 
@@ -275,6 +305,7 @@ func (prov *Provisioner) terminateInstance(ar *persistence.AssetRequest, deleteK
 	if entity, _ := serviceProvision.GetServer(ar.HostName, ar.ServerId); entity != nil {
 		i := 0
 		for ; i < 3; i++ {
+			log.Debugf("[areq %s][res %s]  About to deprovision the instance with serverID %s", ar.Id, ar.ResourceId, ar.ServerId)
 			if err = serviceProvision.DeprovisionInstance(ar); err == nil {
 				break
 			}
@@ -298,7 +329,6 @@ func (prov *Provisioner) notifyDeActivation(ar *persistence.AssetRequest) (err e
 	}
 	return err
 }
-
 
 //On notify activation, modules will be installed and pushes configuration.
 func (prov *Provisioner) notifyActivation(resourceId string) error {

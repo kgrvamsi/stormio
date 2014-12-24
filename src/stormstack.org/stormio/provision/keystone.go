@@ -1,7 +1,7 @@
 package provision
 
 import (
-	dba "stormstack.org/cloudio/persistence"
+	dba "stormstack.org/stormio/persistence"
 	log "github.com/cihub/seelog"
 	"launchpad.net/goose/identity"
 )

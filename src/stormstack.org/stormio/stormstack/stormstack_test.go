@@ -1,5 +1,5 @@
 // stormstack_test test functions in stormstack.go
-// Required to have cloudio config. 
+// Required to have stormio config. 
 // In the configuration set vertex host to localhost and port to 8080
 
 package stormstack_test
@@ -8,15 +8,15 @@ import (
 	"net/http"
 	"github.com/gorilla/mux"
 	"fmt"
-	"stormstack.org/cloudio/persistence"
+	"stormstack.org/stormio/persistence"
 	"github.com/gorilla/handlers"
 	log "github.com/cihub/seelog"
-	"stormstack.org/cloudio/util"
+	"stormstack.org/stormio/util"
 	"time"
 	"testing"
 	. "gopkg.in/check.v1"
 	"os"
-	. "stormstack.org/cloudio/stormstack"
+	. "stormstack.org/stormio/stormstack"
 	"syscall"
 	"io/ioutil"
 	"encoding/json"

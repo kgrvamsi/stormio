@@ -1,8 +1,8 @@
 package main
 
 import (
-	"stormstack.org/cloudio/controllers"
-	"stormstack.org/cloudio/util"
+	"stormstack.org/stormio/controllers"
+	"stormstack.org/stormio/util"
 	"fmt"
 	seelog "github.com/cihub/seelog"
 	"os"
@@ -26,7 +26,7 @@ func main() {
 	seelog.ReplaceLogger(logger)
 	host := util.GetString("server", "host")
 	port := util.GetString("server", "port")
-    fmt.Printf("Starting cloudio on %s:%s using %d CPUs", host, port, ncpu)
+    fmt.Printf("Starting stormio on %s:%s using %d CPUs", host, port, ncpu)
 	seelog.Debugf("No of CPU's available :%d", ncpu)
 	controllers.StartServer(host, port)
 }

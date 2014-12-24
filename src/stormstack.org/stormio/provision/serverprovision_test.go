@@ -1,8 +1,8 @@
 package provision
 
 import (
-	"stormstack.org/cloudio/persistence"
-	"stormstack.org/cloudio/util"
+	"stormstack.org/stormio/persistence"
+	"stormstack.org/stormio/util"
 	"fmt"
 	log "github.com/cihub/seelog"
 	. "launchpad.net/gocheck"
