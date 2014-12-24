@@ -1,7 +1,7 @@
 package persistence
 
 import (
-	"stormstack.org/cloudio/util"
+	"stormstack.org/stormio/util"
 	"labix.org/v2/mgo"
 )
 

@@ -30,7 +30,7 @@ func (as *AssetDS) Close() {
 }
 
 func (as *AssetDS) InitDatabase(provider, dbname, username, password, host, port string) error {
-	// ("mysql", "cloudio:password@tcp(localhost:3306)/cloudio")
+	// ("mysql", "stormio:password@tcp(localhost:3306)/stormio")
 	dsn := &qbs.DataSourceName{Dialect: qbs.NewMysql(), DbName: dbname, Username: username, Password: password, Host: host, Port: port}
 	qbs.RegisterWithDataSourceName(dsn)
 	q, err := qbs.GetQbs()

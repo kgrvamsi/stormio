@@ -1,25 +1,27 @@
 package controllers
 
 import (
-	"stormstack.org/cloudio/cache"
-	"stormstack.org/cloudio/persistence"
-	"stormstack.org/cloudio/provision"
-	"stormstack.org/cloudio/util"
 	"encoding/json"
 	"fmt"
 	log "github.com/cihub/seelog"
 	"github.com/gorilla/mux"
+	"io/ioutil"
 	"labix.org/v2/mgo/bson"
 	"net/http"
+	"stormstack.org/stormio/cache"
+	"stormstack.org/stormio/persistence"
+	"stormstack.org/stormio/provision"
+	"stormstack.org/stormio/util"
 	"time"
 )
 
 func initAssetRoutes(contextPath string, router *mux.Router) {
-	router.HandleFunc(contextPath+"/asset", createAsset).Methods("POST")
-	subRouter := router.PathPrefix(contextPath + "/asset").Subrouter()
+	router.HandleFunc(contextPath+"/createAsset", createAsset).Methods("POST")
+	router.HandleFunc(contextPath+"/deleteAsset", destroyAsset).Methods("POST")
+	subRouter := router.PathPrefix(contextPath + "/tasks").Subrouter()
 	subRouter.HandleFunc("/{id}", retrieveAsset).Methods("GET")
-	subRouter.HandleFunc("/{id}/rename/{newName}", renameAsset).Methods("PUT")
-	subRouter.HandleFunc("/{id}", destroyAsset).Methods("DELETE")
+	//subRouter.HandleFunc("/{id}/rename/{newName}", renameAsset).Methods("PUT")
+	//subRouter.HandleFunc("/{id}", destroyAsset).Methods("DELETE")
 }
 
 // CRUD for AssetRequest starts from here
@@ -27,7 +29,8 @@ func retrieveAsset(response http.ResponseWriter, request *http.Request) {
 	anAssetId := mux.Vars(request)["id"]
 	conn, err := persistence.DefaultSession()
 	if err != nil {
-
+		sendResponse("DB connection failure", http.StatusServiceUnavailable, response)
+		return
 	}
 	defer conn.Close()
 	if ar, err := conn.Find(bson.M{"_id": anAssetId}); err != nil {
@@ -46,6 +49,7 @@ func createAsset(response http.ResponseWriter, request *http.Request) {
 	asset.ReceivedOn = time.Now().String() //set the created time
 	asset.Status = persistence.RequestNew
 	asset.ModelId = asset.Model.Id
+	log.Debugf("Asset Request recieved is %#v", asset)
 	conn, err := persistence.DefaultSession()
 	if err != nil {
 		sendErrorResponse(response, http.StatusInternalServerError, err)
@@ -66,6 +70,20 @@ func createAsset(response http.ResponseWriter, request *http.Request) {
 		log.Debugf("Still %d fips are available", count)
 	}
 
+	if asset.Notify.Url == "" {
+		sendErrorResponse(response, http.StatusPreconditionFailed, fmt.Errorf("No Notify callback URL present"))
+		return
+	}
+
+	if asset.AgentId == "" {
+		sendErrorResponse(response, http.StatusPreconditionFailed, fmt.Errorf("No agentId present in the request"))
+		return
+	}
+
+	if asset.HostName == "" {
+		asset.HostName = asset.Model.Name
+	}
+
 	err = conn.Create(asset)
 	defer conn.Close()
 	if err != nil {
@@ -82,20 +100,42 @@ func createAsset(response http.ResponseWriter, request *http.Request) {
 	return
 }
 
+type AssetDestroy struct {
+	Id string `json:"id"`
+}
+
 func destroyAsset(response http.ResponseWriter, request *http.Request) {
-	vars := mux.Vars(request)
-	anAssetId := vars["id"]
-	conn, _ := persistence.DefaultSession()
+	body, err := ioutil.ReadAll(request.Body)
+	if err != nil {
+		sendErrorResponse(response, http.StatusBadRequest, fmt.Errorf("Could not read the request body"))
+		return
+	}
+
+	var aAsset AssetDestroy
+	err = json.Unmarshal(body, &aAsset)
+	if err != nil {
+		sendErrorResponse(response, http.StatusBadRequest, fmt.Errorf("Could not unmarshal the request body"))
+		return
+	}
+
+	log.Debugf("Finding an asset with ID %v in DB", aAsset.Id)
+	conn, err := persistence.DefaultSession()
+	if err != nil {
+		sendResponse("DB connection failure", http.StatusServiceUnavailable, response)
+		return
+	}
 	defer conn.Close()
-	asset, err := conn.Find(bson.M{"resourceid": anAssetId})
+	asset, err := conn.Find(bson.M{"_id": aAsset.Id})
 
 	if err != nil {
 		sendResponse("Asset not found / already deleted", http.StatusNotFound, response)
+		log.Debugf("Error in finding asset %s %v", asset.Id, err)
 		return
 	}
+	log.Debugf("Asset Request recieved is %#v", asset)
 	provisioner.DelNotification <- asset
 	defer conn.Close()
-	sendResponse("Asset "+anAssetId+" delete request accepted", http.StatusAccepted, response)
+	sendResponse("Asset "+aAsset.Id+" delete request accepted", http.StatusAccepted, response)
 }
 
 func ValidateAssetProvider(response http.ResponseWriter, request *http.Request) (*provision.ServiceProvision, error) {
@@ -110,7 +150,11 @@ func renameAsset(response http.ResponseWriter, request *http.Request) {
 	vars := mux.Vars(request)
 	assetId := vars["id"]
 	newName := vars["newName"]
-	conn, _ := persistence.DefaultSession()
+	conn, err := persistence.DefaultSession()
+	if err != nil {
+		sendResponse("DB connection failure", http.StatusServiceUnavailable, response)
+		return
+	}
 	defer conn.Close()
 	if asset, err := conn.Find(bson.M{"_id": assetId}); err == nil {
 		if prov, err := cache.GetProvider(&asset.Provider); err == nil {
