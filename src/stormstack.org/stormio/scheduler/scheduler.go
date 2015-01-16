@@ -225,7 +225,7 @@ func (prov *Provisioner) notifyDettachAsset(ar *persistence.AssetRequest) error 
 
 	err := prov.Client.SendRequest(client.DELETE, "", url, reqData)
 	if err != nil {
-		log.Errorf("[res %s] Caller error on Asset Detach Error[%v]", ar.ResourceId, err)
+		log.Errorf("[res %s] Caller error on Asset Detach URL [%s],  Error[%v]", ar.ResourceId, err, url)
 		return err
 	}
 	log.Debugf("[res %s] Deleted the attached asset in  Caller [%s]", ar.ResourceId, url)

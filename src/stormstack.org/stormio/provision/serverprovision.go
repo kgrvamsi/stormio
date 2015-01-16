@@ -432,7 +432,19 @@ func (fipne *FIPWithNeutron) Dettach(floatingIp string) error {
 }
 
 func (fipne *FIPWithNeutron) CheckAvailability() (count int, err error) {
-	return 0, nil
+	afip := util.GetInt("openstack", "maximum-fip")
+	consumed := 0
+	if ips, err := fipne.neutron.ListFloatingIPs(nil); err == nil {
+		for _, ip := range ips {
+			if ip.PortId != "" {
+				consumed++
+			}
+		}
+	} else {
+		return -1, err
+	}
+
+	return (afip - consumed), nil
 }
 
 func (fipne *FIPWithNeutron) Attach(serverId string) (string, error) {
@@ -488,7 +500,8 @@ func (fipne *FIPWithNeutron) Attach(serverId string) (string, error) {
 					// if rfip, err := fipne.neutron.AssociateFloatingIP(fip.Id, _fip); err == nil {
 					//	return rfip.FloatingIPAddress, nil
 					// }
-					fipne.neutron.DeleteFloatingIP(fip.FloatingIPAddress)
+					//fipne.neutron.DeleteFloatingIP(fip.FloatingIPAddress)
+					fipne.neutron.DeleteFloatingIP(fip.Id)
 				}
 			}
 		}
