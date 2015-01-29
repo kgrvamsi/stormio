@@ -29,6 +29,7 @@ type AssetModel struct {
 	Name   string `json:"name"`
 	Flavor string `json:"flavor"`
 	Image  string `json:"image"`
+    Networks []map[string]string `json:"networks"`
 }
 
 type StormBolt struct {

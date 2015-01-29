@@ -135,8 +135,9 @@ func (svc *ServiceProvision) ProvisionInstance(asset *persistence.AssetRequest) 
 	stormdata := stormstack.BuildStormData(asset)
 	metadata["stormtracker"] = stormdata
 
+
 	serverOpts := &nova.RunServerOpts{Name: asset.HostName, FlavorId: model.Flavor, ImageId: model.Image,
-		MinCount: 1, MaxCount: 1, Metadata: metadata}
+    MinCount: 1, MaxCount: 1, Metadata: metadata, Networks: model.Networks}
 	log.Debugf("[areq %s][res %s] Creating the server with options %v", asset.Id, asset.ResourceId, serverOpts)
 	entity, err := svc.createInstance(serverOpts)
 	if err != nil {
