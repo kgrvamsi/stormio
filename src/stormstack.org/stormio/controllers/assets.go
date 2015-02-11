@@ -55,22 +55,6 @@ func createAsset(response http.ResponseWriter, request *http.Request) {
 		sendErrorResponse(response, http.StatusInternalServerError, err)
 		return
 	}
-	//validate the assetprovider
-	prov, err := cache.GetProvider(&asset.Provider)
-	if err != nil {
-		sendErrorResponse(response, http.StatusBadRequest, err)
-		return
-	}
-
-	if asset.AttachFIP {
-		if count, err := prov.CheckAvailability(); count <= 0 || err != nil {
-			log.Debugf("No FIP available, sending 412 to caller")
-			sendErrorResponse(response, http.StatusPreconditionFailed, fmt.Errorf("No FIP available"))
-			return
-		} else {
-			log.Debugf("Still %d fips are available", count)
-		}
-	}
 
 	if asset.Notify.Url == "" {
 		sendErrorResponse(response, http.StatusPreconditionFailed, fmt.Errorf("No Notify callback URL present"))
@@ -81,23 +65,41 @@ func createAsset(response http.ResponseWriter, request *http.Request) {
 		sendErrorResponse(response, http.StatusPreconditionFailed, fmt.Errorf("No agentId present in the request"))
 		return
 	}
+	//validate the assetprovider
+    if asset.Provider != (persistence.AssetProvider{}) {
+        prov, err := cache.GetProvider(&asset.Provider)
+        if err != nil {
+            sendErrorResponse(response, http.StatusBadRequest, err)
+            return
+        }
 
-	if asset.HostName == "" {
-		asset.HostName = asset.Model.Name
-	}
+        if asset.AttachFIP {
+            if count, err := prov.CheckAvailability(); count <= 0 || err != nil {
+                log.Debugf("No FIP available, sending 412 to caller")
+                sendErrorResponse(response, http.StatusPreconditionFailed, fmt.Errorf("No FIP available"))
+                return
+            } else {
+                log.Debugf("Still %d fips are available", count)
+            }
+        }
 
-	if (asset.Model.Networks == nil || (asset.Model.Networks != nil && len(asset.Model.Networks) == 0)) && asset.Provider.Neutron != "" {
-		sendErrorResponse(response, http.StatusPreconditionFailed, fmt.Errorf("No Networks present in the request"))
-		return
-	}
+        if asset.HostName == "" {
+            asset.HostName = asset.Model.Name
+        }
 
-	for _, network := range asset.Model.Networks {
-		log.Debug("network is %v", network)
-		if network["uuid"] == "" {
-			sendErrorResponse(response, http.StatusPreconditionFailed, fmt.Errorf("No Networks present in the request"))
-			return
-		}
-	}
+        if (asset.Model.Networks == nil || (asset.Model.Networks != nil && len(asset.Model.Networks) == 0)) && asset.Provider.Neutron != "" {
+            sendErrorResponse(response, http.StatusPreconditionFailed, fmt.Errorf("No Networks present in the request"))
+            return
+        }
+
+        for _, network := range asset.Model.Networks {
+            log.Debug("network is %v", network)
+            if network["uuid"] == "" {
+                sendErrorResponse(response, http.StatusPreconditionFailed, fmt.Errorf("No Networks present in the request"))
+                return
+            }
+        }
+    }
 
 	err = conn.Create(asset)
 	defer conn.Close()

@@ -58,18 +58,29 @@ func (prov *Provisioner) StartProvisioner() {
 				if err != nil {
 					log.Errorf("[areq %s] Error in getting persistent session :%v", assetReq.Id, err)
 					return
-				}
+                }
+                if assetReq.Provider == (persistence.AssetProvider{}){
+                    assetReq.SerialKey = "uuid"
+                    err = stormstack.RegisterStormAgent(assetReq, assetReq.SerialKey)
+                    if err != nil {
+                        log.Errorf("[areq %s] Failed to register Agent. Error is %v", assetReq.Id, err)
+		                assetReq.Status = persistence.RequestRetry
+                        conn.Update(assetReq)
+                        return
+                    }
+                } else {
 
-				if err := prov.createServer(conn, assetReq); err == nil {
-					////shouldn't notify Vertex if fip is nil
-					if assetReq.IpAddress == "" {
-						log.Debugf("[areq %s] Floating IP is not allocated", assetReq.Id)
-						return
-					}
-					//// code ends
-					log.Debugf("[areq %s] Notifying VertexPlatform to create an Asset, ServerId:%s", assetReq.Id, assetReq.ServerId)
-					prov.updateAndNotify(conn, assetReq)
-				}
+                    if err := prov.createServer(conn, assetReq); err == nil {
+                        ////shouldn't notify Vertex if fip is nil
+                        if assetReq.IpAddress == "" {
+                            log.Debugf("[areq %s] Floating IP is not allocated", assetReq.Id)
+                            return
+                        }
+                        //// code ends
+                        log.Debugf("[areq %s] Notifying VertexPlatform to create an Asset, ServerId:%s", assetReq.Id, assetReq.ServerId)
+                        prov.updateAndNotify(conn, assetReq)
+                    }
+                }
 			}(arReq)
 			<-throttle //Rate limit
 		}
@@ -290,6 +301,9 @@ func (prov *Provisioner) RescheduleOldRequests() {
 
 func (prov *Provisioner) terminateFailedResource(ar *persistence.AssetRequest, deleteSaltKey bool) error {
 	prov.notifyDettachAsset(ar)
+    if ar.Provider == (persistence.AssetProvider{}) {
+        return
+    }
 	return prov.terminateInstance(ar, deleteSaltKey)
 }
 
@@ -320,6 +334,9 @@ func (prov *Provisioner) terminateInstance(ar *persistence.AssetRequest, deleteK
 }
 
 func (prov *Provisioner) notifyDeActivation(ar *persistence.AssetRequest) (err error) {
+    if ar.Provider == (persistence.AssetProvider{}){
+        return nil
+    }
 	if err = prov.terminateInstance(ar, false); err == nil {
 		conn, err := persistence.DefaultSession()
 		if err == nil {
