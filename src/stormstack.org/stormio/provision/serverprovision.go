@@ -135,9 +135,8 @@ func (svc *ServiceProvision) ProvisionInstance(asset *persistence.AssetRequest) 
 	stormdata := stormstack.BuildStormData(asset)
 	metadata["stormtracker"] = stormdata
 
-
 	serverOpts := &nova.RunServerOpts{Name: asset.HostName, FlavorId: model.Flavor, ImageId: model.Image,
-    MinCount: 1, MaxCount: 1, Metadata: metadata, Networks: model.Networks}
+		MinCount: 1, MaxCount: 1, Metadata: metadata, Networks: model.Networks}
 	log.Debugf("[areq %s][res %s] Creating the server with options %v", asset.Id, asset.ResourceId, serverOpts)
 	entity, err := svc.createInstance(serverOpts)
 	if err != nil {
@@ -154,10 +153,12 @@ func (svc *ServiceProvision) ProvisionInstance(asset *persistence.AssetRequest) 
 	}
 
 	time.Sleep(time.Duration(guessDelay(delayedUnit)) * time.Second)
-	if asset.Remediation {
-		fip, err = svc.floatingSvc.Retain(entity.Id, asset.IpAddress)
-	} else {
-		fip, err = svc.floatingSvc.Attach(entity.Id)
+	if asset.AttachFIP {
+		if asset.Remediation {
+			fip, err = svc.floatingSvc.Retain(entity.Id, asset.IpAddress)
+		} else {
+			fip, err = svc.floatingSvc.Attach(entity.Id)
+		}
 	}
 	if err != nil {
 		err = &ProvisionError{ErrorAssociateIP, err}
@@ -307,9 +308,11 @@ func (svc *ServiceProvision) DeprovisionInstance(ar *persistence.AssetRequest) e
 	/*Also delete the floating IP, the IP will be release from the pool.
 	If this is the remediation request, don't release back to the pool.
 	*/
-	if ar.Remediation {
-		svc.floatingSvc.Dettach(ar.IpAddress)
-		svc.floatingSvc.Track(ar.IpAddress)
+	if ar.AttachFIP {
+		if ar.Remediation {
+			svc.floatingSvc.Dettach(ar.IpAddress)
+			svc.floatingSvc.Track(ar.IpAddress)
+		}
 	}
 	err := svc.nova.DeleteServer(ar.ServerId)
 	if err != nil {
@@ -575,8 +578,8 @@ func (svc *ServiceProvision) waitServerToStart(serverId string) (delayedUnit int
 			break
 		}
 		// We dont' want to flood the connection while polling the server waiting for it to start.
-		log.Debugf("server has status %s, waiting 10 seconds before polling again...", server.Status)
-		time.Sleep(10 * time.Second)
+		log.Debugf("server has status %s, waiting 5 seconds before polling again...", server.Status)
+		time.Sleep(5 * time.Second)
 		delayedUnit += 1
 	}
 	log.Info("started")

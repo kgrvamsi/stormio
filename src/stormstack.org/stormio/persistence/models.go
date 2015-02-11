@@ -25,11 +25,11 @@ type AssetProvider struct {
 }
 
 type AssetModel struct {
-	Id     string `json:"id" bson:"_id"`
-	Name   string `json:"name"`
-	Flavor string `json:"flavor"`
-	Image  string `json:"image"`
-    Networks []map[string]string `json:"networks"`
+	Id       string              `json:"id" bson:"_id"`
+	Name     string              `json:"name"`
+	Flavor   string              `json:"flavor"`
+	Image    string              `json:"image"`
+	Networks []map[string]string `json:"networks"`
 }
 
 type StormBolt struct {
@@ -105,6 +105,7 @@ type AssetRequest struct {
 	SerialKey       string          `json:"serialkey"`
 	AgentId         string          `json:"agentId"`
 	ControlProvider ControlProvider `json:"controlProvider"`
+	AttachFIP       bool            `json:"attachFIP"`
 	Notify          NotifyCaller
 }
 
