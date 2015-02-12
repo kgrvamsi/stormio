@@ -61,6 +61,7 @@ func (prov *Provisioner) StartProvisioner() {
                 }
                 if assetReq.Provider == (persistence.AssetProvider{}){
                     assetReq.SerialKey = persistence.NewUUID()
+	                time.Sleep(time.Duration(2) * time.Second)
                     err = stormstack.RegisterStormAgent(assetReq, assetReq.SerialKey)
                     if err != nil {
                         log.Errorf("[areq %s] Failed to register Agent. Error is %v", assetReq.Id, err)
