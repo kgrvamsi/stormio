@@ -60,7 +60,7 @@ func (prov *Provisioner) StartProvisioner() {
 					return
                 }
                 if assetReq.Provider == (persistence.AssetProvider{}){
-                    assetReq.SerialKey = "uuid"
+                    assetReq.SerialKey = persistence.NewUUID()
                     err = stormstack.RegisterStormAgent(assetReq, assetReq.SerialKey)
                     if err != nil {
                         log.Errorf("[areq %s] Failed to register Agent. Error is %v", assetReq.Id, err)
@@ -68,6 +68,7 @@ func (prov *Provisioner) StartProvisioner() {
                         conn.Update(assetReq)
                         return
                     }
+                    prov.updateAndNotify(conn, assetReq)
                 } else {
 
                     if err := prov.createServer(conn, assetReq); err == nil {
@@ -197,6 +198,7 @@ type NotifyAsset struct {
 	IsActive  bool   `json:"isActive"`
 	IpAddress string `json:"ipAddress"`
 	AgentId   string `json:"agent"`
+    SerialKey string `json:"serialKey"`
 }
 
 type NotifyResponse struct {
@@ -211,6 +213,7 @@ func (prov *Provisioner) notifyAttachAsset(arRes *persistence.AssetRequest) erro
 	req.Asset.IpAddress = arRes.IpAddress
 	req.Asset.IsActive = true
 	req.Asset.AgentId = arRes.AgentId
+	req.Asset.SerialKey = arRes.SerialKey
 
 	var resp persistence.AssetRequest
 	headers := make(http.Header)
@@ -302,7 +305,7 @@ func (prov *Provisioner) RescheduleOldRequests() {
 func (prov *Provisioner) terminateFailedResource(ar *persistence.AssetRequest, deleteSaltKey bool) error {
 	prov.notifyDettachAsset(ar)
     if ar.Provider == (persistence.AssetProvider{}) {
-        return
+        return nil
     }
 	return prov.terminateInstance(ar, deleteSaltKey)
 }
