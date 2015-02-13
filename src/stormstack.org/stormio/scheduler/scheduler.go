@@ -9,6 +9,7 @@ import (
 	goosehttp "launchpad.net/goose/http"
 	"launchpad.net/goose/identity"
 	"net/http"
+	pkgurl "net/url"
 	"stormstack.org/stormio/cache"
 	"stormstack.org/stormio/persistence"
 	"stormstack.org/stormio/provision"
@@ -58,31 +59,31 @@ func (prov *Provisioner) StartProvisioner() {
 				if err != nil {
 					log.Errorf("[areq %s] Error in getting persistent session :%v", assetReq.Id, err)
 					return
-                }
-                if assetReq.Provider == (persistence.AssetProvider{}){
-                    assetReq.SerialKey = persistence.NewUUID()
-	                time.Sleep(time.Duration(2) * time.Second)
-                    err = stormstack.RegisterStormAgent(assetReq, assetReq.SerialKey)
-                    if err != nil {
-                        log.Errorf("[areq %s] Failed to register Agent. Error is %v", assetReq.Id, err)
-		                assetReq.Status = persistence.RequestRetry
-                        conn.Update(assetReq)
-                        return
-                    }
-                    prov.updateAndNotify(conn, assetReq)
-                } else {
+				}
+				if assetReq.Provider == (persistence.AssetProvider{}) {
+					assetReq.SerialKey = persistence.NewUUID()
+					time.Sleep(time.Duration(4) * time.Second)
+					err = stormstack.RegisterStormAgent(assetReq, assetReq.SerialKey)
+					if err != nil {
+						log.Errorf("[areq %s] Failed to register Agent. Error is %v", assetReq.Id, err)
+						assetReq.Status = persistence.RequestRetry
+						conn.Update(assetReq)
+						return
+					}
+					prov.updateAndNotify(conn, assetReq)
+				} else {
 
-                    if err := prov.createServer(conn, assetReq); err == nil {
-                        ////shouldn't notify Vertex if fip is nil
-                        if assetReq.IpAddress == "" {
-                            log.Debugf("[areq %s] Floating IP is not allocated", assetReq.Id)
-                            return
-                        }
-                        //// code ends
-                        log.Debugf("[areq %s] Notifying VertexPlatform to create an Asset, ServerId:%s", assetReq.Id, assetReq.ServerId)
-                        prov.updateAndNotify(conn, assetReq)
-                    }
-                }
+					if err := prov.createServer(conn, assetReq); err == nil {
+						////shouldn't notify Vertex if fip is nil
+						if assetReq.IpAddress == "" {
+							log.Debugf("[areq %s] Floating IP is not allocated", assetReq.Id)
+							return
+						}
+						//// code ends
+						log.Debugf("[areq %s] Notifying VertexPlatform to create an Asset, ServerId:%s", assetReq.Id, assetReq.ServerId)
+						prov.updateAndNotify(conn, assetReq)
+					}
+				}
 			}(arReq)
 			<-throttle //Rate limit
 		}
@@ -199,14 +200,92 @@ type NotifyAsset struct {
 	IsActive  bool   `json:"isActive"`
 	IpAddress string `json:"ipAddress"`
 	AgentId   string `json:"agent"`
-    SerialKey string `json:"serialKey"`
+	SerialKey string `json:"serialKey"`
 }
 
 type NotifyResponse struct {
 	Asset NotifyAsset `json:"asset"`
 }
 
+type NotifyAgent struct {
+	SerialKey string `json:"serialKey"`
+}
+type ServiceAgent struct {
+	ServiceAgent NotifyAgent `json:"serviceAgent"`
+}
+
+var (
+	nclient = client.NewPublicClient("")
+)
+
+type usgTokenReq struct {
+	Identification string `json:"identification"`
+	Password       string `json:"password"`
+}
+
+type usgTokenResp struct {
+	Token string `json:"token"`
+}
+
+func getNotifierToken() string {
+	username := util.GetString("usg", "username")
+	password := util.GetString("usg", "password")
+	authurl := util.GetString("usg", "authurl")
+
+	var req usgTokenReq
+	req.Identification = username
+	req.Password = password
+
+	var resp usgTokenResp
+
+	reqData := &goosehttp.RequestData{ReqValue: req, RespValue: &resp,
+		ExpectedStatus: []int{http.StatusOK}}
+
+	err := nclient.SendRequest(client.POST, "", authurl, reqData)
+	if err != nil {
+		log.Errorf("Cannot get token from USG. Error[%v]", err)
+		return ""
+	}
+	return resp.Token
+
+}
+func notifyServiceAgent(asset *persistence.AssetRequest) error {
+
+	token := getNotifierToken()
+	if token == "" {
+		return fmt.Errorf("Not able to fetch token")
+	}
+	headers := make(http.Header)
+	tokenstr := fmt.Sprintf("Bearer %s", token)
+	headers.Add("Authorization", tokenstr)
+
+	var agentReq ServiceAgent
+	agentReq.ServiceAgent.SerialKey = asset.SerialKey
+	time.Sleep(time.Duration(2) * time.Second)
+
+	reqData := &goosehttp.RequestData{ReqHeaders: headers, ReqValue: agentReq,
+		ExpectedStatus: []int{http.StatusOK}}
+	purl, err := pkgurl.Parse(asset.Notify.Url)
+	if err != nil {
+		log.Errorf("[areq %s][res %s] cannot parse the url %s", asset.Id, asset.ResourceId, asset.Notify.Url)
+		return err
+	}
+	url := fmt.Sprintf("%s://%s/serviceAgents/%s", purl.Scheme, purl.Host, asset.AgentId)
+	log.Debugf("[areq %s][res %s] Updating Caller [%s] with Agent details", asset.Id, asset.ResourceId, url)
+	err = nclient.SendRequest(client.PUT, "", url, reqData)
+	if err != nil {
+		log.Errorf("[areq %s][res %s] Caller Error on agent update. Error[%v]", asset.Id, asset.ResourceId, err)
+		return err
+	}
+	return nil
+}
+
 func (prov *Provisioner) notifyAttachAsset(arRes *persistence.AssetRequest) error {
+
+	if arRes.Provider == (persistence.AssetProvider{}) {
+		return notifyServiceAgent(arRes)
+	}
+
 	var req NotifyResponse
 	req.Asset.Id = arRes.Id
 	req.Asset.Resource = arRes.ResourceId
@@ -214,11 +293,10 @@ func (prov *Provisioner) notifyAttachAsset(arRes *persistence.AssetRequest) erro
 	req.Asset.IpAddress = arRes.IpAddress
 	req.Asset.IsActive = true
 	req.Asset.AgentId = arRes.AgentId
-	req.Asset.SerialKey = arRes.SerialKey
 
-	var resp persistence.AssetRequest
 	headers := make(http.Header)
 	headers.Add("V-Auth-Token", arRes.Notify.Token)
+	var resp persistence.AssetRequest
 	reqData := &goosehttp.RequestData{ReqHeaders: headers, ReqValue: req, RespValue: &resp,
 		ExpectedStatus: []int{http.StatusOK}}
 	url := fmt.Sprintf("%s", arRes.Notify.Url)
@@ -305,9 +383,9 @@ func (prov *Provisioner) RescheduleOldRequests() {
 
 func (prov *Provisioner) terminateFailedResource(ar *persistence.AssetRequest, deleteSaltKey bool) error {
 	prov.notifyDettachAsset(ar)
-    if ar.Provider == (persistence.AssetProvider{}) {
-        return nil
-    }
+	if ar.Provider == (persistence.AssetProvider{}) {
+		return nil
+	}
 	return prov.terminateInstance(ar, deleteSaltKey)
 }
 
@@ -338,9 +416,9 @@ func (prov *Provisioner) terminateInstance(ar *persistence.AssetRequest, deleteK
 }
 
 func (prov *Provisioner) notifyDeActivation(ar *persistence.AssetRequest) (err error) {
-    if ar.Provider == (persistence.AssetProvider{}){
-        return nil
-    }
+	if ar.Provider == (persistence.AssetProvider{}) {
+		return nil
+	}
 	if err = prov.terminateInstance(ar, false); err == nil {
 		conn, err := persistence.DefaultSession()
 		if err == nil {
